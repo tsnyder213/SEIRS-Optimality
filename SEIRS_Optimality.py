@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 uq = 0
 bmin = 0.05
@@ -55,7 +56,14 @@ for i in range(60):
 x = list(range(0,60))
 y = Uv[0:60]
 y2 = I[0:60]
+
+plt.figure()
+plt.xticks(np.arange(min(x), max(x)+1, 5.0))
+plt.yticks(np.arange(min(y), max(y)+1, 0.1))
 plt.plot(x, y)
+plt.figure()
+plt.yticks(np.arange(min(y2), max(y2)+1, 2.0))
+plt.plot(x, y2)
 plt.show()
 
 SNQ = S
