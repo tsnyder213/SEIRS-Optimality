@@ -1,72 +1,78 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-uq = 0
 bmin = 0.05
 bmax = 0.25
+mu=0.97
+tau=0.13
+gamma=0.05
 
-def beta(uv):
-    return (uv*(bmin - bmax))+bmax
-# (+ *bmax* (* u (- *bmin* *bmax*))))
+def beta(ut):
+    return (ut*(bmin - bmax))+bmax
 
-def interaction(I,S,beta,uv,uq):
-    return round((beta(uv)*S*((1- 0.03)*I))/((S+I)*1.02))
-    #return round((beta(uv)*S*((1- 0.05) * I)*(1-uv)*(1-uq))/((S+I)*1.02))
+def interaction(I,S,E,beta,ut):
+    return round((beta(ut)*S*I)/(S+I+E))
 
-def Iplus(I,S,beta,gamma,uv,uq):
-    return round(I+interaction(I,S,beta,uv,uq)-gamma*((1 - 0.03) *I) - uq*I - 0.13 * ((1- 0.03) * I))
+def Iplus(I,S,E,beta,gamma,ut):
+    return I+round(mu*E)-round(gamma*I)-round(tau*I)
 
-def Splus(I,S,beta,uv,uq):
-    return round(S-interaction(I,S,beta,uv,uq) + 0.13*((1 - 0.03) * I))
+def Splus(I,S,E,beta,ut):
+    return S-round(interaction(I,S,E,beta,ut)) + round(tau*I)
 
-def objective(uv,uq,I,S,beta,gamma,CI,Cq):
-    return round(interaction(I,S,beta,uv,uq)*CI + uv*(((I+S)*1.02)/(I+1)))
+def Eplus(I,S,E,beta,ut):
+    return E + round(interaction(I,S,E,beta,ut)) - round(mu*E)
 
-def opt(I,S,nbuv,nbuq,beta,gamma,CI,Cq):
+def objective(ut,I,S,E,beta,gamma,CI):
+    return interaction(I,S,E,beta,ut)*CI + (ut*((I+S+E)/(I+1)))
+
+def opt(I,S,E,nbut,beta,gamma,CI):
     best=None
-    for uv in [i*(0.2/nbuv) for i in range(nbuv+1)]:
-        for uq in [i*(0.0/nbuq) for i in range(nbuq+1)]:
-            v=objective(uv,uq,I,S,beta,gamma,CI,Cq)
-            if best is None or v<best:
-                best = v
-                uvopt = uv
-                uqopt = uq
-    return [best,uvopt,uqopt]
+    for ut in [i*(0.20/nbut) for i in range(nbut+1)]:
+        v=objective(ut,I,S,E,beta,gamma,CI)
+        if best is None or v<best:
+            best = v
+            utopt = ut
+    return [best,utopt]
 
-def dp(I0=100,S0=400,T=60,gamma=0.05,CI=0.85,Cq=0):
+def dp(I0=100,S0=395,T=60,gamma=0.05,CI=0.85,E0=5):
     V=[0]
     I=[I0]
     S=[S0]
-    Uv=[]
-    Uq=[]
-    nbuv,nbuq = 1,1
+    E=[E0]
+    Ut=[]
+    nbut = 1
     for i in range(1,T+1):
-        [v,uv,uq] = opt(I[i-1],S[i-1],nbuv,nbuq,beta,gamma,CI,Cq)
-        V.append(V[i-1]+v)
-        Uv.append(uv)
-        I.append(Iplus(I[i-1],S[i-1],beta,gamma,uv,uq))
-        S.append(Splus(I[i-1],S[i-1],beta,uv,uq))
-    return [V,I,S,Uv,Uq]
+        [t,ut] = opt(I[i-1],S[i-1],E[i-1],nbut,beta,gamma,CI)
+        V.append(V[i-1]+t)
+        Ut.append(ut)
+        I.append(Iplus(I[i-1],S[i-1],E[i-1],beta,gamma,ut))
+        S.append(Splus(I[i-1],S[i-1],E[i-1],beta,ut))
+        E.append(Eplus(I[i-1],S[i-1],E[i-1],beta,ut))
+    return [V,I,S,E,Ut]
 
-[V,I,S,Uv,Uq]=dp()
-print("T, V, I, S, uv")
+[V,I,S,E,Ut]=dp()
+print("T, V, I, S, E, ut")
 for i in range(60):
-    print("{0:2d}, {1:6.1f}, {2:6.2f}, {3:6.2f}, {4:6.2f}".format(i,V[i],I[i],S[i],Uv[i]))
+    print("{0:2d}, {1:6.1f}, {2:6.2f}, {3:6.2f}, {4:6.2f}, {5:6.2f}".format(i,V[i],I[i],S[i],E[i],Ut[i]))
 
 x = list(range(0,60))
-y = Uv[0:60]
+y = Ut[0:60]
 y2 = I[0:60]
 
 plt.figure()
-plt.xticks(np.arange(min(x), max(x)+1, 5.0))
-plt.yticks(np.arange(min(y), max(y)+1, 0.1))
-plt.plot(x, y)
+plt.xticks(np.arange(min(x), max(x)+5, 5.0))
+plt.yticks(np.arange(0, max(y)+1, 0.02))
+plt.step(x, y)
+plt.ylabel('Rate of Vaccination')
+plt.xlabel('Time Steps')
 plt.figure()
-plt.yticks(np.arange(min(y2), max(y2)+1, 2.0))
-plt.plot(x, y2)
+plt.xticks(np.arange(min(x), max(x)+5, 5.0))
+plt.yticks(np.arange(0, max(y2)+1, 5.0))
+plt.step(x, y2)
+plt.ylabel('Infected Individuals')
+plt.xlabel('Time Steps')
 plt.show()
 
 SNQ = S
 
 INQ = I
-
