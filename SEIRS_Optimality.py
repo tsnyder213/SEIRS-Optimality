@@ -5,7 +5,12 @@ bmin = 0.05
 bmax = 0.25
 mu=0.97
 tau=0.13
-gamma=0.05
+gamma=0.01 #disease deaths
+delta1=0.02 #natural/accidental deaths
+delta2=0.01 #exposed deaths
+delta3=0.01 #infected natural/accidental deaths
+phi=.02 #recruitment rate
+
 
 def beta(ut):
     return (ut*(bmin - bmax))+bmax
@@ -14,27 +19,27 @@ def interaction(I,S,E,beta,ut):
     return round((beta(ut)*S*I)/(S+I+E))
 
 def Iplus(I,S,E,beta,gamma,ut):
-    return I+round(mu*E)-round(gamma*I)-round(tau*I)
+    return I+round(mu*E)-round(gamma*I)-round(tau*I)-round(delta3*I)
 
 def Splus(I,S,E,beta,ut):
-    return S-round(interaction(I,S,E,beta,ut)) + round(tau*I)
+    return S-round(interaction(I,S,E,beta,ut)) + round(tau*I)-round(delta1*S)+round(phi*(E+I+S))
 
 def Eplus(I,S,E,beta,ut):
-    return E + round(interaction(I,S,E,beta,ut)) - round(mu*E)
+    return E + round(interaction(I,S,E,beta,ut)) - round(mu*E)-round(delta2*E)
 
 def objective(ut,I,S,E,beta,gamma,CI):
     return interaction(I,S,E,beta,ut)*CI + (ut*((I+S+E)/(I+1)))
 
 def opt(I,S,E,nbut,beta,gamma,CI):
     best=None
-    for ut in [i*(0.20/nbut) for i in range(nbut+1)]:
+    for ut in [i*(0.2/nbut) for i in range(nbut+1)]:
         v=objective(ut,I,S,E,beta,gamma,CI)
         if best is None or v<best:
             best = v
             utopt = ut
     return [best,utopt]
 
-def dp(I0=100,S0=395,T=60,gamma=0.05,CI=0.85,E0=5):
+def dp(I0=100,S0=395,T=60,gamma=0.01,CI=0.65,E0=5):
     V=[0]
     I=[I0]
     S=[S0]
